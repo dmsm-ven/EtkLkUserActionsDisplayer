@@ -1,35 +1,72 @@
 ﻿using Spectre.Console;
+using Spectre.Console.Rendering;
 using System.Text;
 
 public class PanelsBuilder
 {
     private readonly List<LogLineEntry> lines = new();
-    public void RenderPanels(LogLineEntry[] currentData)
+    public void RenderPanels(IEnumerable<LogLineEntry> currentData)
     {
-        if (currentData.Length == 0)
+        if (currentData.Count() == 0)
             return;
 
         lines.AddRange(currentData);
 
-        var generalPanelData = lines.GroupBy(i => i.Url).OrderByDescending(i => i.Count()).Select(i => $"{i.Key} - {i.Count()}").ToArray();
-        var generalPanel = CreateDataPanel("Общие данные", generalPanelData);
-
-        var userPanelData = lines.GroupBy(i => i.User).OrderByDescending(i => i.Count()).Select(i => $"{i.Key} - {i.Count()}").ToArray();
-        var userPanel = CreateDataPanel("Отдельно по пользователю", userPanelData);
+        var generalPanel = CreateGeneralDataPanel();
+        var userPanel = CreateUserPanel();
 
         var layout = new Columns(generalPanel, userPanel) { Expand = true };
 
+        AnsiConsole.Clear();
         AnsiConsole.Write(layout);
     }
 
-
-    private static Panel CreateDataPanel(string header, string[] elements)
+    private IRenderable CreateUserPanel()
     {
-        var userPanel = new Panel(CreateList(elements))
-            .Header(header)
+        var userPanelData = lines.GroupBy(i => i.User)
+            .OrderByDescending(i => i.Count())
+            .Select(i => $"{i.Key} - {i.Count()}")
+            .ToArray();
+
+        var userPanel = new Panel(CreateList(userPanelData))
+            .Header("Отдельно по пользователю")
             .Border(BoxBorder.Rounded)
             .Expand();
+
         return userPanel;
+    }
+    private IRenderable CreateGeneralDataPanel()
+    {
+        var data = lines
+            .GroupBy(i => i.Url)
+            .OrderByDescending(i => i.Count())
+            .ToArray();
+
+        int totalCount = lines.Count;
+
+        var table = new Table()
+            .Border(TableBorder.Square)
+            .BorderColor(Color.Fuchsia)
+            .Expand()
+            .AddColumn(new TableColumn("[u]URL[/]").NoWrap())
+            .AddColumn(new TableColumn("[u]OPEN_COUNT[/]").Footer($"total: {totalCount}").Centered().NoWrap())
+            .AddColumn(new TableColumn("[u]LAST_ACCES_DATE[/]"))
+            .AddColumn(new TableColumn("[u]LAST_ACCESS_USER[/]").NoWrap());
+
+        foreach (var row in data)
+        {
+            var lastAccess = row.Max(i => i.DateTimeUtc);
+            var lastAccessUser = row.FirstOrDefault(i => i.DateTimeUtc == lastAccess)?.User ?? "???";
+            table.AddRow(
+                $"[blue]{row.Key}[/]",
+                $"[yellow]{row.Count()}[/]",
+                $"[white]{lastAccess}[/]",
+                $"[white]{lastAccessUser}[/]"
+                );
+        }
+
+
+        return table;
     }
 
     private static Markup CreateList(IEnumerable<string> items)
