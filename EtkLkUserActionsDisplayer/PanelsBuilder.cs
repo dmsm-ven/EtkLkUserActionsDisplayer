@@ -1,4 +1,5 @@
-﻿using Spectre.Console;
+﻿using Humanizer;
+using Spectre.Console;
 using Spectre.Console.Rendering;
 using System.Text;
 
@@ -57,13 +58,17 @@ public class PanelsBuilder
             .BorderColor(Color.Fuchsia)
             .Expand()
             .AddColumn(new TableColumn("[u]URL[/]").NoWrap())
-            .AddColumn(new TableColumn("[u]USER[/]").RightAligned());
+            .AddColumn(new TableColumn("[u]USER[/]").Centered())
+            .AddColumn(new TableColumn("[u]DATE_TIME[/]").Centered())
+            .AddColumn(new TableColumn("[u]ELAPSED[/]").RightAligned());
 
         foreach (var row in data)
         {
             table.AddRow(
                 $"[blue]{row.Url}[/]",
-                $"[yellow]{row.DateTimeUtc}[/]"
+                $"[yellow]{row.User}[/]",
+                $"[white]{row.DateTimeUtc}[/]",
+                $"[white]{(DateTime.UtcNow - row.DateTimeUtc).Humanize()}[/]"
                 );
         }
 
