@@ -68,7 +68,7 @@ public class PanelsBuilder
                 $"[blue]{row.Url}[/]",
                 $"[yellow]{row.User}[/]",
                 $"[white]{row.DateTimeUtc}[/]",
-                $"[white]{(DateTime.UtcNow - row.DateTimeUtc).Humanize()}[/]"
+                $"[white]{(DateTime.Now - row.DateTimeUtc).Humanize()}[/]"
                 );
         }
 
