@@ -5,7 +5,14 @@ using System.Text;
 public class PanelsBuilder
 {
     private readonly List<LogLineEntry> lines = new();
-    public void RenderPanels(IEnumerable<LogLineEntry> currentData)
+
+    public int Limit { get; }
+
+    public PanelsBuilder(int limit)
+    {
+        Limit = limit;
+    }
+    public void RenderPanels(IEnumerable<LogLineEntry> currentData, int maxAgeInDays)
     {
         if (currentData.Count() == 0)
             return;
@@ -18,18 +25,21 @@ public class PanelsBuilder
         var layout = new Columns(generalPanel, userPanel) { Expand = true };
 
         AnsiConsole.Clear();
+        AnsiConsole.WriteLine($"История действий пользователей за последние {maxAgeInDays} дн.");
         AnsiConsole.Write(layout);
     }
 
     private IRenderable CreateUserPanel()
     {
-        var userPanelData = lines.GroupBy(i => i.User)
-            .OrderByDescending(i => i.Count())
-            .Select(i => $"{i.Key} - {i.Count()}")
+        var userPanelData = lines
+            .GroupBy(i => i.User)
+            .OrderByDescending(i => i.Max(i => i.DateTimeUtc))
+            .Select(i => $"{i.Key}. Последний доступ {i.Max(i => i.DateTimeUtc)}")
+            .Take(Limit)
             .ToArray();
 
         var userPanel = new Panel(CreateList(userPanelData))
-            .Header("Отдельно по пользователю")
+            .Header("Последние посещение страницы")
             .Border(BoxBorder.Rounded)
             .Expand();
 
@@ -38,30 +48,22 @@ public class PanelsBuilder
     private IRenderable CreateGeneralDataPanel()
     {
         var data = lines
-            .GroupBy(i => i.Url)
-            .OrderByDescending(i => i.Count())
+            .OrderByDescending(i => i.DateTimeUtc)
+            .Take(Limit)
             .ToArray();
-
-        int totalCount = lines.Count;
 
         var table = new Table()
             .Border(TableBorder.Square)
             .BorderColor(Color.Fuchsia)
             .Expand()
             .AddColumn(new TableColumn("[u]URL[/]").NoWrap())
-            .AddColumn(new TableColumn("[u]OPEN_COUNT[/]").Footer($"total: {totalCount}").Centered().NoWrap())
-            .AddColumn(new TableColumn("[u]LAST_ACCES_DATE[/]"))
-            .AddColumn(new TableColumn("[u]LAST_ACCESS_USER[/]").NoWrap());
+            .AddColumn(new TableColumn("[u]USER[/]").RightAligned());
 
         foreach (var row in data)
         {
-            var lastAccess = row.Max(i => i.DateTimeUtc);
-            var lastAccessUser = row.FirstOrDefault(i => i.DateTimeUtc == lastAccess)?.User ?? "???";
             table.AddRow(
-                $"[blue]{row.Key}[/]",
-                $"[yellow]{row.Count()}[/]",
-                $"[white]{lastAccess}[/]",
-                $"[white]{lastAccessUser}[/]"
+                $"[blue]{row.Url}[/]",
+                $"[yellow]{row.DateTimeUtc}[/]"
                 );
         }
 

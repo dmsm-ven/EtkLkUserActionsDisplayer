@@ -1,9 +1,11 @@
 ﻿class Program
 {
+    const int LIMIT_ITEMS = 30;
+    const int MAX_AGE_IN_DAYS = 7;
     static string logFilePath = "user_actions.log";
     static LogLinesReader logLinesReader = new(logFilePath);
     static readonly ManualResetEvent _waitHandle = new(false);
-    static readonly PanelsBuilder builder = new();
+    static readonly PanelsBuilder builder = new(LIMIT_ITEMS);
 
     private static async Task Main(string[] args)
     {
@@ -11,6 +13,9 @@
         {
             logFilePath = args[1];
         }
+
+        Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("ru-RU");
+        Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("ru-RU");
 
         logLinesReader = new(logFilePath);
 
@@ -41,7 +46,7 @@
 
     private static async Task Render()
     {
-        var currentData = await logLinesReader.GetAllLines();
-        builder.RenderPanels(currentData);
+        var currentData = await logLinesReader.GetAllLines(MAX_AGE_IN_DAYS);
+        builder.RenderPanels(currentData, MAX_AGE_IN_DAYS);
     }
 }

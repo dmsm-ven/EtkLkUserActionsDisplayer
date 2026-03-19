@@ -8,7 +8,7 @@ public class LogLinesReader
     {
         this.logFileName = logFileName;
     }
-    public async Task<IEnumerable<LogLineEntry>> GetAllLines()
+    public async Task<IEnumerable<LogLineEntry>> GetAllLines(int maxAgeInDays)
     {
         if (!File.Exists(logFileName))
             throw new FileNotFoundException(logFileName);
@@ -27,7 +27,7 @@ public class LogLinesReader
         while (!reader.EndOfStream)
         {
             var line = await reader.ReadLineAsync();
-            if (LogLineEntry.TryParse(line, out var entry))
+            if (LogLineEntry.TryParse(line, out var entry) && entry.DateTimeUtc.AddDays(maxAgeInDays) > DateTime.UtcNow)
             {
                 result.Add(entry!);
             }
