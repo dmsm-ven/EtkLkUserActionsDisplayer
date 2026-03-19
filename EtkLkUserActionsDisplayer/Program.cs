@@ -3,7 +3,7 @@
     const int LIMIT_ITEMS = 30;
     const int MAX_AGE_IN_DAYS = 7;
     static string logFilePath = "user_actions.log";
-    static LogLinesReader logLinesReader = new(logFilePath);
+    static LogLinesReader? logLinesReader = null;
     static readonly ManualResetEvent _waitHandle = new(false);
     static readonly PanelsBuilder builder = new(LIMIT_ITEMS);
 
@@ -17,12 +17,13 @@
         Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("ru-RU");
         Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("ru-RU");
 
+        var folder = new FileInfo(logFilePath).DirectoryName;
         logLinesReader = new(logFilePath);
 
         using var watcher = new FileSystemWatcher
         {
-            Path = AppContext.BaseDirectory,   // папка запуска программы
-            Filter = logFilePath,                  // только .log файлы
+            Path = folder,   // папка запуска программы
+            Filter = Path.GetFileName(logFilePath),                  // только .log файлы
             NotifyFilter = NotifyFilters.LastWrite
                          | NotifyFilters.FileName
                          | NotifyFilters.Size
